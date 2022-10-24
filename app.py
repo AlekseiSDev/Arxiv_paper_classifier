@@ -1,13 +1,12 @@
 import streamlit as st
 from pandas import DataFrame
 import seaborn as sns
-from model import ArxivClassifierModel
+from model import ArxivClassifierModel, ArxivClassifierModelsPipeline
 
 st.markdown("# Hello, friend!")
 st.markdown(" This magic application going to help you with understanding of science paper topic! Cool? Yeah! ")
 
-# st.write("Loading model")
-model = ArxivClassifierModel()
+model = ArxivClassifierModelsPipeline()
 
 with st.form(key="my_form"):
     st.markdown("### 🎈 Do you want a little magic?  ")
@@ -63,29 +62,35 @@ abstract = doc_abstract
 # except ValueError:
 #     st.error("Word parsing into tokens went wrong! Is input valid? If yes, pls contact author alekseystepin13@gmail.com")
 
-predicts = model.make_predict(title + abstract)
+preds_topic, preds_maintopic = model.make_predict(title + abstract)
 
 st.markdown("## 🎈 Yor article probably about:  ")
 st.header("")
 
 df = (
-    DataFrame(predicts.items(), columns=["Topic", "Prob"])
+    DataFrame(preds_topic.items(), columns=["Topic", "Prob"])
         .sort_values(by="Prob", ascending=False)
         .reset_index(drop=True)
 )
 df.index += 1
 
 df2 = (
-    DataFrame(predicts.items(), columns=["Topic", "Prob"])
+    DataFrame(preds_maintopic.items(), columns=["Topic", "Prob"])
         .sort_values(by="Prob", ascending=False)
         .reset_index(drop=True)
 )
-# df2.index += 1
+df2.index += 1
 
 # Add styling
 cmGreen = sns.light_palette("green", as_cmap=True)
 cmRed = sns.light_palette("red", as_cmap=True)
 df = df.style.background_gradient(
+    cmap=cmGreen,
+    subset=[
+        "Prob",
+    ],
+)
+df2 = df2.style.background_gradient(
     cmap=cmGreen,
     subset=[
         "Prob",
@@ -99,10 +104,10 @@ format_dictionary = {
 }
 
 df = df.format(format_dictionary)
-df2 = df.format(format_dictionary)
+df2 = df2.format(format_dictionary)
 
 with c2:
     st.markdown("#### We suppose your research about:  ")
-    st.table(df)
-    st.markdown("##### More detailed, it's about topic:  ")
     st.table(df2)
+    st.markdown("##### More detailed, it's about topic:  ")
+    st.table(df)
