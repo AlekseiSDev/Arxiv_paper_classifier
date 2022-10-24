@@ -1,20 +1,13 @@
 import streamlit as st
-import pickle
-
 from pandas import DataFrame
-import transformers
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import seaborn as sns
+from model import ArxivClassifierModel
 
 st.markdown("# Hello, friend!")
 st.markdown(" This magic application going to help you with understanding of science paper topic! Cool? Yeah! ")
-# st.markdown("<img width=200px src='https://rozetked.me/images/uploads/dwoilp3BVjlE.jpg'>", unsafe_allow_html=True)
 
-st.write("Loading tokenizer and dict")
-model_name_global = "allenai/scibert_scivocab_uncased"
-tokenizer_ = AutoTokenizer.from_pretrained(model_name_global)
-with open('./models/scibert/decode_dict.pkl', 'rb') as f:
-    decode_dict = pickle.load(f)
+# st.write("Loading model")
+model = ArxivClassifierModel()
 
 with st.form(key="my_form"):
     st.markdown("### 🎈 Do you want a little magic?  ")
@@ -63,38 +56,14 @@ if not submit_button:
     st.stop()
 
 
-#  allow_output_mutation=True
-@st.cache(suppress_st_warning=True)
-def load_model():
-    st.write("Loading big model")
-    return AutoModelForSequenceClassification.from_pretrained("models/scibert/")
-
-
-def make_predict(tokens, decode_dict):
-    # tokenizer_ = AutoTokenizer.from_pretrained(model_name_global)
-    # tokens = tokenizer_(title + abstract, return_tensors="pt")
-
-    model_ = load_model()
-    outs = model_(tokens.input_ids)
-
-    probs = outs["logits"].softmax(dim=-1).tolist()[0]
-    topic_probs = {}
-    for i, p in enumerate(probs):
-        if p > 0.1:
-            topic_probs[decode_dict[i]] = p
-    return topic_probs
-
-
-model_local = "models/scibert/"
-
 title = doc_title
 abstract = doc_abstract
-try:
-    tokens = tokenizer_(title + abstract, return_tensors="pt")
-except ValueError:
-    st.error("Word parsing into tokens went wrong! Is input valid? If yes, pls contact author alekseystepin13@gmail.com")
+# try:
+#     tokens = tokenizer_(title + abstract, return_tensors="pt")
+# except ValueError:
+#     st.error("Word parsing into tokens went wrong! Is input valid? If yes, pls contact author alekseystepin13@gmail.com")
 
-predicts = make_predict(tokens, decode_dict)
+predicts = model.make_predict(title + abstract)
 
 st.markdown("## 🎈 Yor article probably about:  ")
 st.header("")
