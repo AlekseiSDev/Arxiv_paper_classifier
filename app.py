@@ -1,9 +1,10 @@
 import streamlit as st
-import transformers
 import pickle
-import seaborn as sns
+
 from pandas import DataFrame
+import transformers
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
+import seaborn as sns
 
 st.markdown("# Hello, friend!")
 st.markdown(" This magic application going to help you with understanding of science paper topic! Cool? Yeah! ")
@@ -18,32 +19,7 @@ with open('./models/scibert/decode_dict.pkl', 'rb') as f:
 with st.form(key="my_form"):
     st.markdown("### 🎈 Do you want a little magic?  ")
     st.markdown(" Write your article title and abstract to textboxes bellow and I'll gues topic of your paper!  ")
-    # ce, c1, ce, c2, c3 = st.columns([0.07, 1, 0.07, 5, 0.07])
     ce, c2, c3 = st.columns([0.07, 5, 0.07])
-    # with c1:
-    #     ModelType = st.radio(
-    #         "Choose your model",
-    #         ["DistilBERT (Default)", "Flair"],
-    #         help="At present, you can choose between 2 models (Flair or DistilBERT) to embed your text. More to come!",
-    #     )
-    #
-    #     if ModelType == "Default (DistilBERT)":
-    #         # kw_model = KeyBERT(model=roberta)
-    #
-    #         @st.cache(allow_output_mutation=True)
-    #         def load_model():
-    #             return KeyBERT(model=roberta)
-    #
-    #
-    #         kw_model = load_model()
-    #
-    #     else:
-    #         @st.cache(allow_output_mutation=True)
-    #         def load_model():
-    #             return KeyBERT("distilbert-base-nli-mean-tokens")
-    #
-    #
-    #         kw_model = load_model()
 
     with c2:
         doc_title = st.text_area(
@@ -113,9 +89,12 @@ model_local = "models/scibert/"
 
 title = doc_title
 abstract = doc_abstract
-tokens = tokenizer_(title + abstract, return_tensors="pt")
+try:
+    tokens = tokenizer_(title + abstract, return_tensors="pt")
+except ValueError:
+    st.error("Word parsing into tokens went wrong! Is input valid? If yes, pls contact author alekseystepin13@gmail.com")
 
-predicts = make_predict(model_name_global, model_local, tokens, decode_dict, title, abstract)
+predicts = make_predict(tokens, decode_dict)
 
 st.markdown("## 🎈 Yor article probably about:  ")
 st.header("")
@@ -125,8 +104,14 @@ df = (
         .sort_values(by="Prob", ascending=False)
         .reset_index(drop=True)
 )
-
 df.index += 1
+
+df2 = (
+    DataFrame(predicts.items(), columns=["Topic", "Prob"])
+        .sort_values(by="Prob", ascending=False)
+        .reset_index(drop=True)
+)
+# df2.index += 1
 
 # Add styling
 cmGreen = sns.light_palette("green", as_cmap=True)
@@ -145,6 +130,10 @@ format_dictionary = {
 }
 
 df = df.format(format_dictionary)
+df2 = df.format(format_dictionary)
 
 with c2:
+    st.markdown("#### We suppose your research about:  ")
     st.table(df)
+    st.markdown("##### More detailed, it's about topic:  ")
+    st.table(df2)
