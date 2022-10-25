@@ -2,36 +2,6 @@ import streamlit as st
 import pickle
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
-class ArxivClassifierModel():
-
-    def __init__(self):
-        self.model = self.__load_model()
-
-        model_name_global = "allenai/scibert_scivocab_uncased"
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name_global)
-        with open('./models/scibert/decode_dict.pkl', 'rb') as f:
-            self.decode_dict = pickle.load(f)
-
-    def make_predict(self, text):
-        # tokenizer_ = AutoTokenizer.from_pretrained(model_name_global)
-        tokens = self.tokenizer(text, return_tensors="pt")
-
-        outs = self.model(tokens.input_ids)
-
-        probs = outs["logits"].softmax(dim=-1).tolist()[0]
-        topic_probs = {}
-        for i, p in enumerate(probs):
-            if p > 0.1:
-                topic_probs[self.decode_dict[i]] = p
-        return topic_probs
-
-    #  allow_output_mutation=True
-    @st.cache(suppress_st_warning=True)
-    def __load_model(self):
-        st.write("Loading big model")
-        return AutoModelForSequenceClassification.from_pretrained("models/scibert/")
-
-
 
 class ArxivClassifierModelsPipeline():
 
@@ -51,6 +21,12 @@ class ArxivClassifierModelsPipeline():
         with open('models/maintopic_clf/decode_dict_maintopic.pkl', 'rb') as f:
             self.decode_dict_maintopic = pickle.load(f)
 
+        with open('models/maintopic_clf/main_topic_dict.pkl', 'rb') as f:
+            self.main_topic_dict = pickle.load(f)
+
+        with open('models/scibert/topic_dict.pkl', 'rb') as f:
+            self.topic_dict = pickle.load(f)
+
     def make_predict(self, text):
         tokens_topic = self.topic_tokenizer(text, return_tensors="pt")
         topic_outs = self.model_topic_clf(tokens_topic.input_ids)
@@ -58,19 +34,17 @@ class ArxivClassifierModelsPipeline():
         topic_probs = {}
         for i, p in enumerate(probs_topic):
             if p > 0.1:
-                topic_probs[self.decode_dict_topic[i]] = p
+                if self.decode_dict_topic[i] in self.topic_dict:
+                    topic_probs[self.topic_dict[self.decode_dict_topic[i]]] = p
+                else:
+                    topic_probs[self.decode_dict_topic[i]] = p
 
         tokens_maintopic = self.maintopic_tokenizer(text, return_tensors="pt")
         maintopic_outs = self.model_maintopic_clf(tokens_maintopic.input_ids)
         probs_maintopic = maintopic_outs["logits"].softmax(dim=-1).tolist()[0]
-        maintopic_probs = {}
-        for i, p in enumerate(probs_maintopic):
-            if p > 0.1:
-                maintopic_probs[self.decode_dict_maintopic[i]] = p
+        maintopic_probs = self.decode_dict_maintopic[0]
         
-
-
-        return topic_probs, maintopic_probs
+        return topic_probs, self.main_topic_dict[maintopic_probs]
 
     @st.cache(suppress_st_warning=True)
     def __load_topic_clf(self):

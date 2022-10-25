@@ -1,7 +1,7 @@
 import streamlit as st
 from pandas import DataFrame
 import seaborn as sns
-from model import ArxivClassifierModel, ArxivClassifierModelsPipeline
+from model import ArxivClassifierModelsPipeline
 
 st.markdown("# Hello, friend!")
 st.markdown(" This magic application going to help you with understanding of science paper topic! Cool? Yeah! ")
@@ -15,12 +15,12 @@ with st.form(key="my_form"):
 
     with c2:
         doc_title = st.text_area(
-            "Paste your abstract title below (max 100 words)",
+            "Paste your paper's title below (max 100 words)",
             height=210,
         )
 
         doc_abstract = st.text_area(
-            "Paste your abstract text below (max 100500 words)",
+            "Paste your paper's abstract text below (max 100500 words)",
             height=410,
         )
 
@@ -44,7 +44,7 @@ with st.form(key="my_form"):
                 "⚠️ Your abstract contains "
                 + str(len_abstract)
                 + " words."
-                + " Only the first 50 words will be reviewed. Stay tuned as increased allowance is coming! 😊"
+                + " Only the first 500 words will be reviewed. Stay tuned as increased allowance is coming! 😊"
             )
 
             doc_abstract = doc_abstract[:MAX_WORDS_ABSTRACT]
@@ -68,18 +68,12 @@ st.markdown("## 🎈 Yor article probably about:  ")
 st.header("")
 
 df = (
-    DataFrame(preds_topic.items(), columns=["Topic", "Prob"])
-        .sort_values(by="Prob", ascending=False)
+    DataFrame(preds_topic.items(), columns=["Topic", "Probability"])
+        .sort_values(by="Probability", ascending=False)
         .reset_index(drop=True)
 )
 df.index += 1
 
-df2 = (
-    DataFrame(preds_maintopic.items(), columns=["Topic", "Prob"])
-        .sort_values(by="Prob", ascending=False)
-        .reset_index(drop=True)
-)
-df2.index += 1
 
 # Add styling
 cmGreen = sns.light_palette("green", as_cmap=True)
@@ -87,27 +81,21 @@ cmRed = sns.light_palette("red", as_cmap=True)
 df = df.style.background_gradient(
     cmap=cmGreen,
     subset=[
-        "Prob",
-    ],
-)
-df2 = df2.style.background_gradient(
-    cmap=cmGreen,
-    subset=[
-        "Prob",
+        "Probability",
     ],
 )
 
 c1, c2, c3 = st.columns([1, 3, 1])
 
 format_dictionary = {
-    "Prob": "{:.1%}",
+    "Probability": "{:.1%}",
 }
 
 df = df.format(format_dictionary)
-df2 = df2.format(format_dictionary)
 
 with c2:
     st.markdown("#### We suppose your research about:  ")
-    st.table(df2)
+    st.markdown(f"### {preds_maintopic}! ")
+    st.markdown(f"Wow, we're impressed, are you addicted to {preds_maintopic.lower()}?! Coool! ")
     st.markdown("##### More detailed, it's about topic:  ")
     st.table(df)
